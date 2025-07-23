@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metronome</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-gradient-start: #f8f9fa;
+            --bg-gradient-end: #e9ecef;
+            --container-bg: rgba(255, 255, 255, 0.8);
+            --container-border: rgba(255, 255, 255, 0.3);
+            --text-primary: #374151;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --indicator-bg: linear-gradient(135deg, #9ca3af, #6b7280);
+            --indicator-pulse: linear-gradient(135deg, #6b7280, #374151);
+            --btn-bg: rgba(255, 255, 255, 0.7);
+            --btn-border: #9ca3af;
+            --btn-hover: linear-gradient(135deg, #9ca3af, #6b7280);
+            --input-bg: rgba(255, 255, 255, 0.8);
+            --input-border: #d1d5db;
+            --play-btn-bg: linear-gradient(135deg, #9ca3af, #6b7280);
+            --play-btn-hover: linear-gradient(135deg, #6b7280, #4b5563);
+            --play-btn-active: linear-gradient(135deg, #374151, #1f2937);
+            --switch-bg: #d1d5db;
+            --switch-thumb: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient-start: #1f2937;
+            --bg-gradient-end: #111827;
+            --container-bg: rgba(31, 41, 55, 0.8);
+            --container-border: rgba(75, 85, 99, 0.3);
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --indicator-bg: linear-gradient(135deg, #6b7280, #4b5563);
+            --indicator-pulse: linear-gradient(135deg, #9ca3af, #6b7280);
+            --btn-bg: rgba(31, 41, 55, 0.7);
+            --btn-border: #6b7280;
+            --btn-hover: linear-gradient(135deg, #6b7280, #9ca3af);
+            --input-bg: rgba(31, 41, 55, 0.8);
+            --input-border: #4b5563;
+            --play-btn-bg: linear-gradient(135deg, #6b7280, #4b5563);
+            --play-btn-hover: linear-gradient(135deg, #9ca3af, #6b7280);
+            --play-btn-active: linear-gradient(135deg, #d1d5db, #9ca3af);
+            --switch-bg: #4b5563;
+            --switch-thumb: #1f2937;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-gradient-start: #1f2937;
+                --bg-gradient-end: #111827;
+                --container-bg: rgba(31, 41, 55, 0.8);
+                --container-border: rgba(75, 85, 99, 0.3);
+                --text-primary: #f9fafb;
+                --text-secondary: #d1d5db;
+                --text-muted: #9ca3af;
+                --indicator-bg: linear-gradient(135deg, #6b7280, #4b5563);
+                --indicator-pulse: linear-gradient(135deg, #9ca3af, #6b7280);
+                --btn-bg: rgba(31, 41, 55, 0.7);
+                --btn-border: #6b7280;
+                --btn-hover: linear-gradient(135deg, #6b7280, #9ca3af);
+                --input-bg: rgba(31, 41, 55, 0.8);
+                --input-border: #4b5563;
+                --play-btn-bg: linear-gradient(135deg, #6b7280, #4b5563);
+                --play-btn-hover: linear-gradient(135deg, #9ca3af, #6b7280);
+                --play-btn-active: linear-gradient(135deg, #d1d5db, #9ca3af);
+                --switch-bg: #4b5563;
+                --switch-thumb: #1f2937;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .metronome-container {
+            background: var(--container-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--container-border);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .theme-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: var(--switch-bg);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .switch-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--switch-thumb);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .switch.dark .switch-thumb {
+            transform: translateX(26px);
+        }
+
+        .switch-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .beat-indicator {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--indicator-bg);
+            margin: 0 auto 30px;
+            transition: all 0.1s ease;
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.15),
+                inset 0 2px 4px rgba(255, 255, 255, 0.1);
+        }
+
+        .beat-indicator.pulse {
+            transform: scale(1.2);
+            background: var(--indicator-pulse);
+            box-shadow: 
+                0 6px 30px rgba(0, 0, 0, 0.25),
+                inset 0 2px 4px rgba(255, 255, 255, 0.05);
+        }
+
+        .bpm-display {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .bpm-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .bpm-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--btn-border);
+            background: var(--btn-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .bpm-btn:hover {
+            background: var(--btn-hover);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .bpm-input {
+            width: 80px;
+            height: 40px;
+            border: 2px solid var(--input-border);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--input-bg);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .bpm-input:focus {
+            outline: none;
+            border-color: var(--btn-border);
+            box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.1);
+        }
+
+        .play-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: var(--play-btn-bg);
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 
+                0 8px 24px rgba(0, 0, 0, 0.15),
+                inset 0 2px 4px rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            background: var(--play-btn-hover);
+            box-shadow: 
+                0 12px 32px rgba(0, 0, 0, 0.2),
+                inset 0 2px 4px rgba(255, 255, 255, 0.05);
+        }
+
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+
+        .play-btn.playing {
+            background: var(--play-btn-active);
+            box-shadow: 
+                0 8px 24px rgba(0, 0, 0, 0.2),
+                inset 0 2px 4px rgba(255, 255, 255, 0.02);
+        }
+
+        .keyboard-hint {
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+        }
+
+        @media (max-width: 480px) {
+            .metronome-container {
+                padding: 30px 20px;
+            }
+            
+            .bpm-display {
+                font-size: 36px;
+            }
+            
+            .play-btn {
+                width: 100px;
+                height: 100px;
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="metronome-container">
+        <div class="theme-switch">
+            <span class="switch-label">Dark</span>
+            <div class="switch" id="themeSwitch">
+                <div class="switch-thumb"></div>
+            </div>
+        </div>
+        
+        <div class="beat-indicator" id="beatIndicator"></div>
+        
+        <div class="bpm-display" id="bpmDisplay">120</div>
+        <div class="bpm-label">BPM</div>
+        
+        <div class="controls">
+            <button class="bpm-btn" id="decreaseBtn">−</button>
+            <input type="number" class="bpm-input" id="bpmInput" value="120" min="40" max="200">
+            <button class="bpm-btn" id="increaseBtn">+</button>
+        </div>
+        
+        <button class="play-btn" id="playBtn">
+            <span id="playBtnText">START</span>
+        </button>
+        
+        <div class="keyboard-hint">Press spacebar to start/stop</div>
+    </div>
+
+    <script>
+        class Metronome {
+            constructor() {
+                this.audioContext = null;
+                this.isPlaying = false;
+                this.bpm = 120;
+                this.nextNoteTime = 0.0;
+                this.scheduleAheadTime = 25.0;
+                this.lookAhead = 25.0;
+                this.timerID = null;
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.initializeTheme();
+            }
+            
+            initializeElements() {
+                this.beatIndicator = document.getElementById('beatIndicator');
+                this.bpmDisplay = document.getElementById('bpmDisplay');
+                this.bpmInput = document.getElementById('bpmInput');
+                this.playBtn = document.getElementById('playBtn');
+                this.playBtnText = document.getElementById('playBtnText');
+                this.decreaseBtn = document.getElementById('decreaseBtn');
+                this.increaseBtn = document.getElementById('increaseBtn');
+                this.themeSwitch = document.getElementById('themeSwitch');
+            }
+            
+            setupEventListeners() {
+                this.playBtn.addEventListener('click', () => this.togglePlay());
+                this.bpmInput.addEventListener('input', (e) => this.setBPM(parseInt(e.target.value)));
+                this.decreaseBtn.addEventListener('click', () => this.adjustBPM(-1));
+                this.increaseBtn.addEventListener('click', () => this.adjustBPM(1));
+                this.themeSwitch.addEventListener('click', () => this.toggleTheme());
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.togglePlay();
+                    }
+                });
+                
+                this.bpmInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        this.bpmInput.blur();
+                    }
+                });
+            }
+            
+            initializeTheme() {
+                // Check for saved theme preference
+                const savedTheme = localStorage.getItem('metronome-theme');
+                const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                if (savedTheme) {
+                    this.setTheme(savedTheme);
+                } else {
+                    // Follow system preference if no saved preference
+                    this.setTheme(systemDark ? 'dark' : 'light');
+                }
+                
+                // Listen for system theme changes and update if no manual preference is set
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    if (!localStorage.getItem('metronome-theme')) {
+                        this.setTheme(e.matches ? 'dark' : 'light');
+                    }
+                });
+            }
+            
+            setTheme(theme) {
+                if (theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    this.themeSwitch.classList.add('dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    this.themeSwitch.classList.remove('dark');
+                }
+            }
+            
+            toggleTheme() {
+                const isDark = document.documentElement.hasAttribute('data-theme');
+                const newTheme = isDark ? 'light' : 'dark';
+                this.setTheme(newTheme);
+                // Save the user's manual preference
+                localStorage.setItem('metronome-theme', newTheme);
+            }
+            
+            initAudioContext() {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+            }
+            
+            createClickSound() {
+                // Create multiple oscillators for a rich bass drum sound
+                const oscillator1 = this.audioContext.createOscillator();
+                const oscillator2 = this.audioContext.createOscillator();
+                const noiseBuffer = this.createNoiseBuffer();
+                const noiseSource = this.audioContext.createBufferSource();
+                
+                const gainNode = this.audioContext.createGain();
+                const noiseGain = this.audioContext.createGain();
+                const filterNode = this.audioContext.createBiquadFilter();
+                const noiseFilter = this.audioContext.createBiquadFilter();
+                
+                // Connect oscillators
+                oscillator1.connect(filterNode);
+                oscillator2.connect(filterNode);
+                filterNode.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // Connect noise for attack
+                noiseSource.buffer = noiseBuffer;
+                noiseSource.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(this.audioContext.destination);
+                
+                // Create bass drum frequencies (fundamental + sub harmonic)
+                oscillator1.type = 'sine';
+                oscillator1.frequency.setValueAtTime(60, this.audioContext.currentTime);
+                oscillator1.frequency.exponentialRampToValueAtTime(35, this.audioContext.currentTime + 0.1);
+                
+                oscillator2.type = 'sine';
+                oscillator2.frequency.setValueAtTime(120, this.audioContext.currentTime);
+                oscillator2.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + 0.08);
+                
+                // Low-pass filter for warmth
+                filterNode.type = 'lowpass';
+                filterNode.frequency.setValueAtTime(200, this.audioContext.currentTime);
+                filterNode.Q.setValueAtTime(1, this.audioContext.currentTime);
+                
+                // High-pass filter for noise (attack)
+                noiseFilter.type = 'highpass';
+                noiseFilter.frequency.setValueAtTime(100, this.audioContext.currentTime);
+                
+                // Bass drum envelope - punchy attack, long decay
+                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.8, this.audioContext.currentTime + 0.005);
+                gainNode.gain.exponentialRampToValueAtTime(0.3, this.audioContext.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                
+                // Noise envelope for attack transient
+                noiseGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+                noiseGain.gain.linearRampToValueAtTime(0.3, this.audioContext.currentTime + 0.002);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.02);
+                
+                oscillator1.start(this.audioContext.currentTime);
+                oscillator1.stop(this.audioContext.currentTime + 0.3);
+                
+                oscillator2.start(this.audioContext.currentTime);
+                oscillator2.stop(this.audioContext.currentTime + 0.3);
+                
+                noiseSource.start(this.audioContext.currentTime);
+                noiseSource.stop(this.audioContext.currentTime + 0.02);
+            }
+            
+            createNoiseBuffer() {
+                const bufferSize = this.audioContext.sampleRate * 0.02; // 20ms of noise
+                const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+                const output = buffer.getChannelData(0);
+                
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                
+                return buffer;
+            }
+            
+            scheduleNote(time) {
+                this.createClickSound();
+                
+                // Schedule visual feedback
+                const delay = (time - this.audioContext.currentTime) * 1000;
+                setTimeout(() => {
+                    this.beatIndicator.classList.add('pulse');
+                    setTimeout(() => {
+                        this.beatIndicator.classList.remove('pulse');
+                    }, 100);
+                }, delay);
+            }
+            
+            scheduler() {
+                while (this.nextNoteTime < this.audioContext.currentTime + this.scheduleAheadTime / 1000) {
+                    this.scheduleNote(this.nextNoteTime);
+                    this.nextNoteTime += (60.0 / this.bpm);
+                }
+                this.timerID = setTimeout(() => this.scheduler(), this.lookAhead);
+            }
+            
+            start() {
+                this.initAudioContext();
+                this.nextNoteTime = this.audioContext.currentTime;
+                this.scheduler();
+                this.isPlaying = true;
+                this.playBtn.classList.add('playing');
+                this.playBtnText.textContent = 'STOP';
+            }
+            
+            stop() {
+                if (this.timerID) {
+                    clearTimeout(this.timerID);
+                    this.timerID = null;
+                }
+                this.isPlaying = false;
+                this.playBtn.classList.remove('playing');
+                this.playBtnText.textContent = 'START';
+                this.beatIndicator.classList.remove('pulse');
+            }
+            
+            togglePlay() {
+                if (this.isPlaying) {
+                    this.stop();
+                } else {
+                    this.start();
+                }
+            }
+            
+            setBPM(newBPM) {
+                if (newBPM >= 40 && newBPM <= 200) {
+                    this.bpm = newBPM;
+                    this.bpmDisplay.textContent = this.bpm;
+                    this.bpmInput.value = this.bpm;
+                }
+            }
+            
+            adjustBPM(change) {
+                this.setBPM(this.bpm + change);
+            }
+        }
+        
+        // Initialize metronome when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new Metronome();
+        });
+    </script>
+</body>
+</html>
